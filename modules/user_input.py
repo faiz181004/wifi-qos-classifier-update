@@ -1,5 +1,4 @@
 import math
-import statistics
 
 import streamlit as st
 import streamlit.components.v1 as components
@@ -10,64 +9,221 @@ from modules import style
 
 
 # ==========================================================
-# SPEED TEST (real network measurement via speedtest-cli)
+# SPEED TEST (real network measurement — CLIENT-SIDE via JavaScript)
+#
+# CATATAN PENTING (riwayat perbaikan):
+#   v1: memakai library Python "speedtest-cli" -> berjalan di SERVER,
+#       bukan di device pengguna. SALAH, sudah diganti.
+#   v2: memakai library pihak ketiga "streamlit-javascript" untuk
+#       mengirim hasil JS balik ke Python -> TERNYATA tidak
+#       kompatibel dengan versi Streamlit terbaru (protokol
+#       komponennya berubah) -> hasil tidak pernah sampai ke Python.
+#   v3: mencoba mengirim hasil lewat navigasi URL (window.top.location)
+#       -> TERNYATA browser MEMBLOKIR TOTAL iframe menavigasi frame
+#       utama, karena Streamlit tidak mengaktifkan izin
+#       "allow-top-navigation(-by-user-activation)" di sandbox
+#       komponennya. Ini berlaku bahkan untuk klik asli pengguna,
+#       dan tidak bisa diakali dari sisi kode JS sama sekali.
+#   v4: JS hanya menampilkan hasil sebagai teks, pengguna menyalin
+#       manual ke kolom input. Selalu berhasil, tapi butuh 1 langkah
+#       manual yang diminta dihilangkan.
+#   v5 (SEKARANG): mencoba mengisi otomatis kolom number_input yang
+#       SUNGGUHAN di halaman utama, langsung dari JS di dalam iframe,
+#       memakai akses DOM window.top (diizinkan karena sandbox iframe
+#       ini punya "allow-same-origin") -- mencari elemen <input> lewat
+#       teks labelnya, lalu mengisi nilainya + memicu event input/
+#       change/blur seolah diketik pengguna, supaya React (yang
+#       dipakai Streamlit) mendeteksi perubahan dan mengirimkannya ke
+#       Python secara normal lewat mekanisme bawaan number_input.
+#       CATATAN JUJUR: ini bergantung pada struktur HTML internal
+#       Streamlit (atribut data-testid dsb) yang TIDAK dijamin stabil
+#       antar versi. Kolom input tetap ditampilkan sebagai cadangan
+#       manual kalau trik ini gagal di environment Anda.
 # ==========================================================
 
-def jalankan_speedtest():
-    """
-    Menjalankan tes kecepatan internet nyata (speedtest.net) memakai
-    library speedtest-cli. Mengembalikan dict berisi download (Mbps),
-    upload (Mbps), ping (ms), jitter (ms atau None), isp, ip,
-    server_sponsor, dan server_lokasi. Mengembalikan None jika gagal.
-    """
 
-    try:
-        import speedtest
-    except ImportError:
-        st.error(
-            "Library **speedtest-cli** belum terpasang. "
-            "Jalankan `pip install speedtest-cli` pada environment aplikasi, "
-            "lalu ulangi lagi."
-        )
-        return None
+def _bangun_html_speedtest():
+    """HTML+JS yang dijalankan di browser pengguna untuk mengukur
+    kecepatan internet asli mereka. Menampilkan gauge animasi selagi
+    mengukur, lalu mencoba mengisi otomatis kolom number_input di
+    halaman utama (lihat catatan v5 di atas). Kolom hasil tetap
+    ditampilkan sebagai cadangan kalau auto-isi gagal."""
 
-    try:
-        tester = speedtest.Speedtest(secure=True)
-        tester.get_best_server()
-        tester.download()
-        tester.upload()
+    return """
+    <div id="gaugeBox" style="display:flex;flex-direction:column;align-items:center;">
+        <svg width="220" height="140" viewBox="0 0 300 200">
+            <path d="M 32,150 A 118,118 0 0 1 268,150"
+                  fill="none" stroke="#2a2e3f" stroke-width="14" stroke-linecap="round" />
+            <g>
+                <animateTransform attributeName="transform" type="rotate"
+                    values="-75 150 150; 75 150 150; -75 150 150"
+                    keyTimes="0;0.5;1" dur="1.6s" repeatCount="indefinite" />
+                <line x1="150" y1="150" x2="150" y2="40"
+                      stroke="#6d7dfc" stroke-width="4" stroke-linecap="round" />
+                <circle cx="150" cy="150" r="7" fill="#6d7dfc" />
+            </g>
+        </svg>
+    </div>
 
-        hasil = tester.results.dict()
+    <div id="status" style="
+        font-family: -apple-system, sans-serif;
+        color: #b5b8c5;
+        font-size: 0.9rem;
+        text-align: center;
+        padding: 0.3rem;
+    ">Mengukur kecepatan internet Anda...</div>
 
-        # Perkiraan jitter dari variasi latency ke beberapa server terdekat
-        # yang sempat di-ping saat mencari server terbaik.
-        try:
-            latencies = []
-            for daftar_server in tester.servers.values():
-                for s in daftar_server:
-                    if "latency" in s:
-                        latencies.append(s["latency"])
-            jitter = round(statistics.pstdev(latencies), 2) if len(latencies) >= 2 else None
-        except Exception:
-            jitter = None
+    <div id="hasilBox" style="
+        font-family: -apple-system, sans-serif;
+        text-align: center;
+    "></div>
 
-        client = hasil.get("client", {}) or {}
-        server = hasil.get("server", {}) or {}
+    <script>
+    (async function () {
+        const statusEl = document.getElementById("status");
+        const hasilBox = document.getElementById("hasilBox");
+        const gaugeBox = document.getElementById("gaugeBox");
 
-        return {
-            "download": round(hasil["download"] / 1_000_000, 2),  # bit/s -> Mbps
-            "upload": round(hasil["upload"] / 1_000_000, 2),
-            "ping": round(hasil["ping"], 2),
-            "jitter": jitter,
-            "isp": client.get("isp"),
-            "ip": client.get("ip"),
-            "server_sponsor": server.get("sponsor"),
-            "server_lokasi": ", ".join(filter(None, [server.get("name"), server.get("country")]))
+        function denganTimeout(promise, ms, pesan) {
+            return Promise.race([
+                promise,
+                new Promise((_, reject) => setTimeout(() => reject(new Error(pesan)), ms))
+            ]);
         }
 
-    except Exception as e:
-        st.error(f"Speed Test gagal dijalankan: {e}")
-        return None
+        function kartu(label, nilai, satuan) {
+            return `
+                <div style="display:inline-block;margin:0.4rem 0.6rem;padding:0.5rem 1rem;
+                            background:#1a1d29;border:1px solid #2a2e3f;border-radius:10px;min-width:110px;">
+                    <div style="color:#8a8fa3;font-size:0.72rem;text-transform:uppercase;">${label}</div>
+                    <div style="color:#e8eaf0;font-size:1.3rem;font-weight:700;">${nilai}
+                        <span style="font-size:0.7rem;color:#8a8fa3;font-weight:400;">${satuan}</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        // --- Trik auto-isi: cari input asli Streamlit lewat teks
+        // labelnya, lalu isi nilainya + picu event seolah diketik
+        // pengguna, supaya React/Streamlit mendeteksi perubahannya. ---
+        function setNilaiInputReact(inputEl, nilai) {
+            const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value").set;
+            setter.call(inputEl, nilai);
+            inputEl.dispatchEvent(new Event("input", { bubbles: true }));
+            inputEl.dispatchEvent(new Event("change", { bubbles: true }));
+            inputEl.blur();
+        }
+
+        function cariInputLabel(doc, teksLabel) {
+            const kandidat = doc.querySelectorAll("label, p, span");
+            for (const el of kandidat) {
+                const teks = (el.textContent || "").trim();
+                if (teks === teksLabel || teks.startsWith(teksLabel)) {
+                    const kontainer = el.closest('[data-testid="stNumberInput"]') || el.closest("div");
+                    if (kontainer) {
+                        const input = kontainer.querySelector('input[type="number"]');
+                        if (input) return input;
+                    }
+                }
+            }
+            return null;
+        }
+
+        function cobaIsiOtomatis(hasil) {
+            try {
+                const topDoc = window.top.document;
+                const peta = {
+                    "Download Speed (Mbps)": hasil.download,
+                    "Upload Speed (Mbps)": hasil.upload,
+                    "Latency / Ping (ms)": hasil.ping,
+                };
+                let jumlahBerhasil = 0;
+                for (const [label, nilai] of Object.entries(peta)) {
+                    const input = cariInputLabel(topDoc, label);
+                    if (input) {
+                        setNilaiInputReact(input, nilai);
+                        jumlahBerhasil++;
+                    }
+                }
+                return jumlahBerhasil;
+            } catch (e) {
+                return 0;
+            }
+        }
+
+        function tampilkanHasil(d, otomatisBerhasil) {
+            gaugeBox.style.display = "none";
+            hasilBox.innerHTML =
+                kartu("Download", d.download, "Mbps") +
+                kartu("Upload", d.upload, "Mbps") +
+                kartu("Ping", d.ping, "ms") +
+                kartu("Jitter", d.jitter, "ms") +
+                (otomatisBerhasil >= 3
+                    ? `<div style="margin-top:0.6rem;color:#22c55e;font-size:0.82rem;font-weight:600;">
+                          &#10003; Kolom di bawah sudah otomatis terisi
+                       </div>`
+                    : `<div style="margin-top:0.6rem;color:#8a8fa3;font-size:0.78rem;">
+                          Auto-isi tidak berhasil di browser ini -- silakan salin angka di atas ke kolom di bawah manual.
+                       </div>`);
+        }
+
+        try {
+            // --- PING & JITTER ---
+            const pingSamples = [];
+            for (let i = 0; i < 5; i++) {
+                const t0 = performance.now();
+                await fetch("https://speed.cloudflare.com/__down?bytes=0", { cache: "no-store" });
+                pingSamples.push(performance.now() - t0);
+            }
+            const avgPing = pingSamples.reduce((a, b) => a + b, 0) / pingSamples.length;
+            const variance = pingSamples.reduce((a, b) => a + Math.pow(b - avgPing, 2), 0) / pingSamples.length;
+            const jitter = Math.sqrt(variance);
+
+            // --- DOWNLOAD ---
+            statusEl.textContent = "Mengukur kecepatan unduh...";
+            const downloadBytes = 20000000;
+            const dt0 = performance.now();
+            const downRes = await denganTimeout(
+                fetch("https://speed.cloudflare.com/__down?bytes=" + downloadBytes, { cache: "no-store" }),
+                20000, "timeout download"
+            );
+            await downRes.arrayBuffer();
+            const downloadMbps = (downloadBytes * 8 / 1e6) / ((performance.now() - dt0) / 1000);
+
+            // --- UPLOAD ---
+            statusEl.textContent = "Mengukur kecepatan unggah...";
+            const uploadBytes = 8000000;
+            const uploadData = new Uint8Array(uploadBytes);
+            const ut0 = performance.now();
+            await denganTimeout(
+                fetch("https://speed.cloudflare.com/__up", { method: "POST", body: uploadData, cache: "no-store" }),
+                20000, "timeout upload"
+            );
+            const uploadMbps = (uploadBytes * 8 / 1e6) / ((performance.now() - ut0) / 1000);
+
+            statusEl.textContent = "Pengukuran selesai!";
+
+            const hasil = {
+                download: Math.round(downloadMbps * 100) / 100,
+                upload: Math.round(uploadMbps * 100) / 100,
+                ping: Math.round(avgPing * 100) / 100,
+                jitter: Math.round(jitter * 100) / 100
+            };
+
+            const jumlahBerhasil = cobaIsiOtomatis(hasil);
+            tampilkanHasil(hasil, jumlahBerhasil);
+
+        } catch (err) {
+            const pesan = err && err.message ? err.message : String(err);
+            gaugeBox.style.display = "none";
+            statusEl.textContent = "Speed Test gagal: " + pesan;
+            hasilBox.innerHTML = `<div style="color:#ef4444;font-size:0.85rem;">
+                Coba lagi, atau isi manual di kolom bawah berdasarkan aplikasi speed test lain.
+            </div>`;
+        }
+    })();
+    </script>
+    """
 
 
 # ==========================================================
@@ -314,111 +470,54 @@ def show(model, predict):
         "Masukkan data jaringan dan jawab kuesioner keluhan Anda"
     )
 
-    metode = st.radio(
-        "Metode Pengambilan Data Kecepatan",
-        [
-            "Speed Test Otomatis",
-            "Input Manual"
-        ],
-        horizontal=True
-    )
+    # JS di browser mengukur kecepatan ASLI milik pengguna, lalu
+    # mencoba mengisi otomatis 3 kolom input di bawah. Lihat catatan
+    # riwayat perbaikan panjang di atas fungsi _bangun_html_speedtest()
+    # kalau ingin tahu kenapa mekanismenya seperti ini.
+    if st.session_state.get("speedtest_running"):
+        components.html(_bangun_html_speedtest(), height=280)
+        st.button("Reload", on_click=lambda: st.session_state.update(speedtest_running=False))
+    else:
+        if st.button("Jalankan Speed Test", use_container_width=True):
+            st.session_state["speedtest_running"] = True
+            st.rerun()
 
-    # ------------------------------------------------------
-    # MODE: SPEED TEST OTOMATIS
-    # ------------------------------------------------------
-    if metode == "Speed Test Otomatis":
+    st.write("")
 
-        hasil_st = st.session_state.get("speedtest_result")
+    col1, col2 = st.columns(2)
 
-        slot_gauge = st.empty()
+    with col1:
+        download = st.number_input(
+            "Download Speed (Mbps)",
+            min_value=0.0, max_value=2000.0,
+            value=st.session_state.get("speedtest_download", 8.0),
+            step=0.1, key="speedtest_download"
+        )
+        upload = st.number_input(
+            "Upload Speed (Mbps)",
+            min_value=0.0, max_value=2000.0,
+            value=st.session_state.get("speedtest_upload", 4.0),
+            step=0.1, key="speedtest_upload"
+        )
 
-        with slot_gauge:
-            if hasil_st:
-                render_gauge(
-                    hasil_st["download"], hasil_st["upload"],
-                    hasil_st["ping"], hasil_st["jitter"],
-                    hasil_st["isp"], hasil_st["ip"],
-                    hasil_st["server_sponsor"], hasil_st["server_lokasi"],
-                    placeholder=False
-                )
-            else:
-                render_gauge(None, None, None, None, None, None, None, None, placeholder=True)
-
-        st.write("")
-
-        if st.button("Mulai Speed Test", use_container_width=True):
-
-            with slot_gauge:
-                render_gauge_loading()
-
-            hasil_baru = jalankan_speedtest()
-
-            if hasil_baru:
-                st.session_state["speedtest_result"] = hasil_baru
-                st.rerun()
-
-        download = hasil_st["download"] if hasil_st else None
-        upload = hasil_st["upload"] if hasil_st else None
-        latency = hasil_st["ping"] if hasil_st else None
-
-        st.write("")
-
+    with col2:
+        latency = st.number_input(
+            "Latency / Ping (ms)",
+            min_value=0.0, max_value=1000.0,
+            value=st.session_state.get("speedtest_latency", 20.0),
+            step=1.0, key="speedtest_latency"
+        )
         packet_loss = st.number_input(
             "Packet Loss (%)",
-            min_value=0.0,
-            max_value=100.0,
-            value=0.0,
-            step=0.1
+            min_value=0.0, max_value=100.0,
+            value=0.0, step=0.1
         )
 
-        st.markdown(
-            "🔗 **Belum mengetahui nilai Packet Loss?** "
-            "Lakukan pengujian di "
-            "[Open Packet Loss Test](https://openpacketloss.com/)."
-        )
-
-    # ------------------------------------------------------
-    # MODE: INPUT MANUAL
-    # ------------------------------------------------------
-    else:
-
-        col1, col2 = st.columns(2)
-
-        with col1:
-
-            download = st.number_input(
-                "Download Speed (Mbps)",
-                min_value=0.0,
-                max_value=1000.0,
-                value=8.0,
-                step=0.1
-            )
-
-            upload = st.number_input(
-                "Upload Speed (Mbps)",
-                min_value=0.0,
-                max_value=1000.0,
-                value=4.0,
-                step=0.1
-            )
-
-        with col2:
-
-            latency = st.number_input(
-                "Latency (ms)",
-                min_value=0.0,
-                max_value=1000.0,
-                value=20.0,
-                step=1.0
-            )
-
-            packet_loss = st.number_input(
-                "Packet Loss (%)",
-                min_value=0.0,
-                max_value=100.0,
-                value=0.0,
-                step=0.1
-            )
+    st.markdown(
+        "🔗 **Belum mengetahui nilai Packet Loss?** "
+        "Lakukan pengujian di "
+        "[Open Packet Loss Test](https://openpacketloss.com/)."
+    )
 
     st.markdown("#### Penilaian Keluhan")
 
