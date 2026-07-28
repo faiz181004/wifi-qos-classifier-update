@@ -5,7 +5,7 @@ import streamlit as st
 # PALET WARNA (DARK & SIMPLE)
 # ==========================================================
 
-PRIMARY = "#6C7CF7"       # indigo lembut untuk aksen
+PRIMARY = "#2F2FE4"       # indigo lembut untuk aksen
 SUCCESS = "#22C55E"
 WARNING = "#EAB308"
 DANGER = "#EF4444"
