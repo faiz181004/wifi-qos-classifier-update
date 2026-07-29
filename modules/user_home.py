@@ -4,7 +4,7 @@ from modules import style
 
 def card(title, body):
     st.markdown(f"""
-    <div style="background:#1b1f27;border:1px solid #333;border-radius:16px;padding:20px;height:230px">
+    <div style="background:#101426;border:1px solid #333;border-radius:16px;padding:20px;height:230px">
     <h4 style="margin-top:0;color:white">{title}</h4>
     <div style="color:#d6d6d6;line-height:1.8">{body}</div>
     </div>
@@ -44,7 +44,7 @@ def show(df_bersih, hasil_model, LABEL, URUTAN_KELAS, nama_user):
     st.subheader("Cara Menggunakan")
 
     st.markdown("""
-    <div style="background:#1b1f27;border:1px solid #333;border-radius:16px;padding:20px">
+    <div style="background:#101426;border:1px solid #333;border-radius:16px;padding:20px">
     <ol style="color:#d6d6d6;font-size:16px;line-height:2">
     <li>Pilih menu <b>Input Data</b>.</li>
     <li>Masukkan hasil Speedtest dan data keluhan.</li>

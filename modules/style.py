@@ -2,20 +2,29 @@ import streamlit as st
 
 
 # ==========================================================
-# PALET WARNA (DARK & SIMPLE)
+# PALET WARNA — Dark Navy / Indigo (terinspirasi dashboard modern)
 # ==========================================================
 
-PRIMARY = "#2F2FE4"       # indigo lembut untuk aksen
-SUCCESS = "#22C55E"
-WARNING = "#EAB308"
-DANGER = "#EF4444"
+PRIMARY        = "#4848D1"   # indigo/ungu utama untuk aksen & tombol
+PRIMARY_HOVER  = "#3E3EC3"
+PRIMARY_SOFT   = "rgba(108, 107, 245, 0.16)"
 
-BG = "#0E1117"            # background utama
-SIDEBAR_BG = "#12151C"
-CARD_BG = "#161A22"
-BORDER = "#262B36"
-TEXT = "#E5E7EB"
-TEXT_MUTED = "#9CA3AF"
+SUCCESS      = "#22C55E"
+SUCCESS_SOFT = "rgba(34, 197, 94, 0.16)"
+
+WARNING      = "#EAB308"
+WARNING_SOFT = "rgba(234, 179, 8, 0.16)"
+
+DANGER      = "#F04747"
+DANGER_SOFT = "rgba(240, 71, 71, 0.16)"
+
+BG          = "#111525"     # background utama, navy sangat gelap
+SIDEBAR_BG  = "#0E142E"
+CARD_BG     = "#131730"     # kartu, sedikit lebih terang dari BG
+CARD_BG_2   = "#171C3A"     # kartu level kedua / hover
+BORDER      = "#232946"
+TEXT        = "#E9EBF7"
+TEXT_MUTED  = "#8B92B0"
 
 
 # ==========================================================
@@ -35,7 +44,7 @@ def load_css():
         }}
 
         html, body, [class*="css"] {{
-            font-family: "Segoe UI", "Inter", sans-serif;
+            font-family: "Inter", "Segoe UI", sans-serif;
             color: {TEXT};
         }}
 
@@ -58,17 +67,63 @@ def load_css():
             border-right: 1px solid {BORDER};
         }}
 
+        section[data-testid="stSidebar"] > div {{
+            padding-top: 0.5rem;
+        }}
+
         section[data-testid="stSidebar"] * {{
             color: {TEXT} !important;
         }}
 
+        /* ---------- Sidebar: menu (radio) bergaya nav item ala dashboard ---------- */
+        section[data-testid="stSidebar"] div[data-testid="stRadio"] > label {{
+            display: none;   /* sembunyikan label "Menu" bawaan */
+        }}
+
+        section[data-testid="stSidebar"] div[role="radiogroup"] {{
+            gap: 4px;
+            display: flex;
+            flex-direction: column;
+        }}
+
         section[data-testid="stSidebar"] div[role="radiogroup"] label {{
-            border-radius: 8px;
-            padding: 6px 10px;
+            position: relative;
+            border-radius: 10px;
+            padding: 10px 14px 10px 16px;
+            margin: 0;
+            font-weight: 500;
+            transition: background 0.15s ease, color 0.15s ease;
+            cursor: pointer;
         }}
 
         section[data-testid="stSidebar"] div[role="radiogroup"] label:hover {{
             background: {CARD_BG};
+        }}
+
+        /* sembunyikan bulatan radio bawaan */
+        section[data-testid="stSidebar"] div[role="radiogroup"] label > div:first-child {{
+            display: none;
+        }}
+
+        /* item aktif: pill indigo + garis aksen kiri, meniru referensi desain */
+        section[data-testid="stSidebar"] div[role="radiogroup"] label:has(input:checked) {{
+            background: {PRIMARY_SOFT};
+        }}
+
+        section[data-testid="stSidebar"] div[role="radiogroup"] label:has(input:checked) p {{
+            color: {PRIMARY} !important;
+            font-weight: 700 !important;
+        }}
+
+        section[data-testid="stSidebar"] div[role="radiogroup"] label:has(input:checked)::before {{
+            content: "";
+            position: absolute;
+            left: -1px;
+            top: 8px;
+            bottom: 8px;
+            width: 3px;
+            border-radius: 3px;
+            background: {PRIMARY};
         }}
 
         section[data-testid="stSidebar"] hr {{
@@ -79,17 +134,19 @@ def load_css():
             background: transparent !important;
             border: 1px solid {BORDER} !important;
             color: {TEXT} !important;
+            border-radius: 10px !important;
         }}
 
         section[data-testid="stSidebar"] button:hover {{
-            border-color: {PRIMARY} !important;
-            color: {PRIMARY} !important;
+            border-color: {DANGER} !important;
+            color: {DANGER} !important;
         }}
 
         /* ---------- Headings & text ---------- */
         h1, h2, h3, h4 {{
             color: {TEXT};
-            font-weight: 600;
+            font-weight: 700;
+            letter-spacing: -0.01em;
         }}
 
         p, span, label, li {{
@@ -99,15 +156,31 @@ def load_css():
         /* ---------- Buttons (main area) ---------- */
         div[data-testid="stAppViewContainer"] .stButton button {{
             background: {PRIMARY};
-            color: #0E1117;
+            color: #FFFFFF;
             border: none;
-            border-radius: 8px;
-            padding: 0.5rem 1rem;
+            border-radius: 10px;
+            padding: 0.55rem 1.1rem;
             font-weight: 600;
+            box-shadow: 0 4px 14px rgba(108, 107, 245, 0.28);
+            transition: background 0.15s ease, transform 0.1s ease;
         }}
 
         div[data-testid="stAppViewContainer"] .stButton button:hover {{
-            opacity: 0.85;
+            background: {PRIMARY_HOVER};
+            transform: translateY(-1px);
+        }}
+
+        div[data-testid="stAppViewContainer"] .stDownloadButton button {{
+            background: transparent;
+            color: {TEXT};
+            border: 1px solid {BORDER};
+            border-radius: 10px;
+            font-weight: 600;
+        }}
+
+        div[data-testid="stAppViewContainer"] .stDownloadButton button:hover {{
+            border-color: {PRIMARY};
+            color: {PRIMARY};
         }}
 
         /* ---------- Inputs ---------- */
@@ -118,7 +191,7 @@ def load_css():
             background: {CARD_BG} !important;
             color: {TEXT} !important;
             border: 1px solid {BORDER} !important;
-            border-radius: 8px !important;
+            border-radius: 10px !important;
         }}
 
         /* ---------- Tabs ---------- */
@@ -129,7 +202,7 @@ def load_css():
 
         .stTabs [data-baseweb="tab"] {{
             background: transparent;
-            border-radius: 6px 6px 0 0;
+            border-radius: 8px 8px 0 0;
             padding: 8px 16px;
             font-weight: 600;
             color: {TEXT_MUTED};
@@ -144,24 +217,29 @@ def load_css():
         div[data-testid="stMetric"] {{
             background: {CARD_BG};
             border: 1px solid {BORDER};
-            border-radius: 10px;
-            padding: 0.9rem 1rem;
+            border-radius: 14px;
+            padding: 1rem 1.1rem;
         }}
 
         div[data-testid="stMetricLabel"] {{
             color: {TEXT_MUTED} !important;
+            font-weight: 600 !important;
+        }}
+
+        div[data-testid="stMetricValue"] {{
+            font-weight: 700 !important;
         }}
 
         /* ---------- Dataframe / table ---------- */
         div[data-testid="stDataFrame"] {{
-            border-radius: 10px;
+            border-radius: 12px;
             overflow: hidden;
             border: 1px solid {BORDER};
         }}
 
         /* ---------- Alerts ---------- */
         div[data-testid="stAlert"] {{
-            border-radius: 10px;
+            border-radius: 12px;
         }}
 
         /* ---------- Progress bar ---------- */
@@ -177,7 +255,7 @@ def load_css():
         section[data-testid="stFileUploaderDropzone"] {{
             background: {CARD_BG};
             border: 1px dashed {BORDER};
-            border-radius: 10px;
+            border-radius: 12px;
         }}
 
         /* ---------- Divider ---------- */
@@ -190,7 +268,7 @@ def load_css():
         .app-card {{
             background: {CARD_BG};
             border: 1px solid {BORDER};
-            border-radius: 12px;
+            border-radius: 14px;
             padding: 1.2rem 1.4rem;
             margin-bottom: 1rem;
         }}
@@ -198,8 +276,8 @@ def load_css():
         .app-badge {{
             display: inline-block;
             padding: 3px 10px;
-            border-radius: 6px;
-            font-size: 0.8rem;
+            border-radius: 999px;
+            font-size: 0.78rem;
             font-weight: 700;
         }}
 
@@ -218,8 +296,8 @@ def page_header(title, subtitle=None):
 
     st.markdown(
         f"""
-        <div style="font-size:1.4rem;font-weight:700;color:{TEXT};margin-bottom:0.2rem;">{title}</div>
-        {f'<div style="color:{TEXT_MUTED};font-size:0.9rem;margin-bottom:0.8rem;">{subtitle}</div>' if subtitle else ''}
+        <div style="font-size:1.6rem;font-weight:700;color:{TEXT};margin-bottom:0.2rem;letter-spacing:-0.01em;">{title}</div>
+        {f'<div style="color:{TEXT_MUTED};font-size:0.92rem;margin-bottom:0.8rem;">{subtitle}</div>' if subtitle else ''}
         <div style="height:1px;background:{BORDER};margin:0.8rem 0 1.2rem 0;"></div>
         """,
         unsafe_allow_html=True
@@ -227,7 +305,7 @@ def page_header(title, subtitle=None):
 
 
 def badge(text, color=SUCCESS):
-    return f'<span class="app-badge" style="background:{color}22;color:{color};">{text}</span>'
+    return f'<span class="app-badge" style="background:{color}29;color:{color};">{text}</span>'
 
 
 def card_open():
@@ -236,3 +314,26 @@ def card_open():
 
 def card_close():
     st.markdown('</div>', unsafe_allow_html=True)
+
+
+# ==========================================================
+# WARNA KELAS HASIL — dipakai bersama di tabel admin/ekspor
+# ==========================================================
+
+def warna_hasil_style(val):
+    """Mengembalikan CSS pandas Styler untuk kolom kelas hasil,
+    dengan tone yang konsisten dengan tema gelap aplikasi."""
+
+    if val == "Buruk":
+        return f"background-color:{DANGER_SOFT}; color:{DANGER}; font-weight:700;"
+
+    elif val == "Sedang":
+        return f"background-color:{WARNING_SOFT}; color:{WARNING}; font-weight:700;"
+
+    elif val == "Baik":
+        return f"background-color:{SUCCESS_SOFT}; color:{SUCCESS}; font-weight:700;"
+
+    elif val == "Sangat Baik":
+        return f"background-color:{SUCCESS}; color:#08130D; font-weight:700;"
+
+    return ""

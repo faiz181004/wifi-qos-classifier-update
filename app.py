@@ -28,15 +28,18 @@ from modules import (
     style
 )
 
+
+
+
 # ==========================
 # CONFIG
 # ==========================
 
 st.set_page_config(
     page_title="WiFi QoS Classifier",
-    page_icon="📶",
+    page_icon="",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="expanded",
 )
 
 style.load_css()
@@ -80,8 +83,8 @@ if not is_login():
 
         st.markdown(
             f"""
-            <div style="text-align:center;margin-bottom:1rem;">
-                <div style="font-size:1.4rem;font-weight:700;">WiFi QoS Classifier</div>
+            <div style="text-align:center;margin-bottom:1.4rem;">
+                <div style="font-size:1.5rem;font-weight:700;letter-spacing:-0.01em;">WiFi QoS Classifier</div>
                 <div style="color:{style.TEXT_MUTED};font-size:0.9rem;margin-top:0.3rem;">
                     Sistem klasifikasi kualitas layanan WiFi
                 </div>
@@ -89,6 +92,7 @@ if not is_login():
             """,
             unsafe_allow_html=True
         )
+
 
         tab_login, tab_register = st.tabs([
             "Login",
@@ -189,6 +193,7 @@ if not is_login():
                             pesan
                         )
 
+        style.card_close()
 
     st.stop()
 
@@ -202,27 +207,37 @@ role_user = st.session_state["role"].upper()
 
 st.sidebar.markdown(
     f"""
-    <div style="text-align:center;padding:0.4rem 0 1rem 0;">
-        <div style="font-size:1.3rem;font-weight:700;">WiFi QoS</div>
-        <div style="
-            width:48px;height:48px;border-radius:50%;
-            background:{style.CARD_BG};
-            border:1px solid {style.BORDER};
-            display:flex;align-items:center;justify-content:center;
-            font-size:1.2rem;font-weight:700;
-            margin:0.8rem auto 0.4rem auto;
-            color:{style.PRIMARY};
-        ">{inisial}</div>
-        <div style="font-weight:600;">{nama_user}</div>
-        <div style="
-            display:inline-block;margin-top:4px;
-            background:{style.CARD_BG};
-            border:1px solid {style.BORDER};
-            padding:2px 10px;border-radius:6px;
-            font-size:0.72rem;letter-spacing:0.4px;font-weight:700;
-            color:{style.TEXT_MUTED};
-        ">{role_user}</div>
+    <div style="display:flex;align-items:center;gap:10px;padding:0.3rem 0.2rem 1.2rem 0.2rem;">
+        <div style="font-size:1.15rem;font-weight:700;letter-spacing:-0.01em;">WiFi QoS</div>
     </div>
+    """,
+    unsafe_allow_html=True
+)
+
+st.sidebar.markdown(
+    f"""
+    <div style="
+        display:flex;align-items:center;gap:10px;
+        background:{style.CARD_BG};
+        border:1px solid {style.BORDER};
+        border-radius:12px;
+        padding:0.6rem 0.8rem;
+        margin-bottom:0.6rem;
+    ">
+        <div style="
+            width:34px;height:34px;border-radius:50%;
+            background:{style.PRIMARY_SOFT};
+            display:flex;align-items:center;justify-content:center;
+            font-size:0.95rem;font-weight:700;
+            color:{style.PRIMARY};
+            flex-shrink:0;
+        ">{inisial}</div>
+        <div style="line-height:1.2;overflow:hidden;">
+            <div style="font-weight:600;font-size:0.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{nama_user}</div>
+            <div style="color:{style.TEXT_MUTED};font-size:0.72rem;letter-spacing:0.3px;">{role_user}</div>
+        </div>
+    </div>
+    </br>
     """,
     unsafe_allow_html=True
 )
@@ -230,19 +245,19 @@ st.sidebar.markdown(
 if is_admin():
 
     menu_map = {
-        "Dashboard": "Dashboard",
-        "Input Data": "Input Data Admin",
-        "User": "User",
-        "Data User": "Data User",
-        "Ekspor": "Ekspor"
+        " Dashboard": "Dashboard",
+        " Input Data": "Input Data Admin",
+        " User": "User",
+        " Data User": "Data User",
+        " Ekspor": "Ekspor"
     }
 
 else:
 
     menu_map = {
-        "Beranda": "Beranda",
-        "Input Data": "Input Data",
-        "Hasil Saya": "Hasil Saya"
+        "  Beranda": "Beranda",
+        "  Input Data": "Input Data",
+        "  Hasil Saya": "Hasil Saya"
     }
 
 pilihan_menu = st.sidebar.radio(
@@ -252,7 +267,14 @@ pilihan_menu = st.sidebar.radio(
 
 halaman = menu_map[pilihan_menu]
 
-st.sidebar.divider()
+st.sidebar.markdown(
+    f"""
+    <div style="height:1px;background:{style.BORDER};margin:1.2rem 0;"></div>
+    """,
+    unsafe_allow_html=True
+)
+
+
 
 if st.sidebar.button(
     "Logout",

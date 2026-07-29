@@ -519,9 +519,23 @@ def show(model, predict):
         "[Open Packet Loss Test](https://openpacketloss.com/)."
     )
 
-    st.markdown("Kuesioner Keluhan Pengguna")
+    st.markdown("#### Penilaian Keluhan")
 
-    st.caption("Pilih jawaban yang paling sesuai dengan pengalaman Anda selama menggunakan layanan WiFi.")
+    st.info("""
+**Petunjuk Pengisian**
+
+Pilih jawaban sesuai pengalaman Anda.
+
+1 = Sangat sering bermasalah
+
+2 = Sering
+
+3 = Kadang-kadang
+
+4 = Jarang
+
+5 = Tidak pernah bermasalah
+""")
 
     opsi = {
         "1 - Sangat sering bermasalah": 1,
@@ -531,57 +545,40 @@ def show(model, predict):
         "5 - Tidak pernah bermasalah": 5
     }
 
-    col1, col2 = st.columns(2, gap="large")
+    q1 = opsi[
+        st.radio(
+            "1. Seberapa sering Anda mengalami koneksi internet yang lambat?",
+            list(opsi.keys())
+        )
+    ]
 
-    with col1:
+    q2 = opsi[
+        st.radio(
+            "2. Seberapa sering koneksi internet Anda terputus secara tiba-tiba?",
+            list(opsi.keys())
+        )
+    ]
 
-        q1 = opsi[
-            st.radio(
-                "1. Seberapa sering Anda mengalami koneksi internet yang lambat?",
-                list(opsi.keys()),
-                key="q1"
-            )
-        ]
+    q3 = opsi[
+        st.radio(
+            "3. Seberapa sering Anda mengalami keterlambatan (lag) saat mengakses internet?",
+            list(opsi.keys())
+        )
+    ]
 
-        st.write("")
+    q4 = opsi[
+        st.radio(
+            "4. Seberapa sering sinyal WiFi di lokasi Anda tidak stabil?",
+            list(opsi.keys())
+        )
+    ]
 
-        q2 = opsi[
-            st.radio(
-                "2. Seberapa sering koneksi internet Anda terputus secara tiba-tiba?",
-                list(opsi.keys()),
-                key="q2"
-            )
-        ]
-
-        st.write("")
-
-        q3 = opsi[
-            st.radio(
-                "3. Seberapa sering Anda mengalami keterlambatan (lag) saat mengakses internet?",
-                list(opsi.keys()),
-                key="q3"
-            )
-        ]
-
-    with col2:
-
-        q4 = opsi[
-            st.radio(
-                "4. Seberapa sering sinyal WiFi di lokasi Anda tidak stabil?",
-                list(opsi.keys()),
-                key="q4"
-            )
-        ]
-
-        st.write("")
-
-        q5 = opsi[
-            st.radio(
-                "5. Seberapa sering Anda perlu menghubungi teknisi karena gangguan?",
-                list(opsi.keys()),
-                key="q5"
-            )
-        ]
+    q5 = opsi[
+        st.radio(
+            "5. Seberapa sering Anda perlu menghubungi teknisi karena gangguan?",
+            list(opsi.keys())
+        )
+    ]
 
     skor_keluhan = round(
         (q1 + q2 + q3 + q4 + q5) / 5,

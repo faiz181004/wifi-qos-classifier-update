@@ -93,7 +93,9 @@ def show(hasil_model):
         yaxis_title="Jumlah Data",
         showlegend=False,
         height=450,
-        template="plotly_dark"
+        template="plotly_dark",
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)"
     )
 
     st.plotly_chart(

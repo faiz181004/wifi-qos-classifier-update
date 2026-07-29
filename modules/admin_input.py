@@ -28,21 +28,7 @@ KOLOM_TEMPLATE = [
     "label_kelas"
 ]
 
-def warna_hasil(val):
-
-    if val == "Buruk":
-        return "background-color:#dc3545; color:white;"      # Merah
-
-    elif val == "Sedang":
-        return "background-color:#FFD966; color:black;"      # Kuning
-
-    elif val == "Baik":
-        return "background-color:#90EE90; color:black;"      # Hijau muda
-
-    elif val == "Sangat Baik":
-        return "background-color:#1E7E34; color:white;"      # Hijau tua
-
-    return ""
+warna_hasil = style.warna_hasil_style
 
 def show(model, predict):
 
