@@ -2,29 +2,125 @@ import streamlit as st
 
 
 # ==========================================================
-# PALET WARNA — Dark Navy / Indigo (terinspirasi dashboard modern)
+# PALET WARNA — Dark Navy / Indigo & Light (terinspirasi dashboard modern)
 # ==========================================================
 
-PRIMARY        = "#4848D1"   # indigo/ungu utama untuk aksen & tombol
-PRIMARY_HOVER  = "#3E3EC3"
-PRIMARY_SOFT   = "rgba(108, 107, 245, 0.16)"
+THEMES = {
+    "dark": dict(
+        PRIMARY        = "#4848D1",
+        PRIMARY_HOVER  = "#3E3EC3",
+        PRIMARY_SOFT   = "rgba(108, 107, 245, 0.16)",
+        PRIMARY_SHADOW = "rgba(108, 107, 245, 0.28)",
 
-SUCCESS      = "#22C55E"
-SUCCESS_SOFT = "rgba(34, 197, 94, 0.16)"
+        SUCCESS      = "#22C55E",
+        SUCCESS_SOFT = "rgba(34, 197, 94, 0.16)",
 
-WARNING      = "#EAB308"
-WARNING_SOFT = "rgba(234, 179, 8, 0.16)"
+        WARNING      = "#EAB308",
+        WARNING_SOFT = "rgba(234, 179, 8, 0.16)",
 
-DANGER      = "#F04747"
-DANGER_SOFT = "rgba(240, 71, 71, 0.16)"
+        DANGER      = "#F04747",
+        DANGER_SOFT = "rgba(240, 71, 71, 0.16)",
 
-BG          = "#111525"     # background utama, navy sangat gelap
-SIDEBAR_BG  = "#0E142E"
-CARD_BG     = "#131730"     # kartu, sedikit lebih terang dari BG
-CARD_BG_2   = "#171C3A"     # kartu level kedua / hover
-BORDER      = "#232946"
-TEXT        = "#E9EBF7"
-TEXT_MUTED  = "#8B92B0"
+        BG          = "#111525",     # background utama, navy sangat gelap
+        SIDEBAR_BG  = "#0E142E",
+        CARD_BG     = "#131730",     # kartu, sedikit lebih terang dari BG
+        CARD_BG_2   = "#171C3A",     # kartu level kedua / hover
+        BORDER      = "#232946",
+        TEXT        = "#E9EBF7",
+        TEXT_MUTED  = "#8B92B0",
+    ),
+    "light": dict(
+        PRIMARY        = "#3F31D4",
+        PRIMARY_HOVER  = "#3E3EC3",
+        PRIMARY_SOFT   = "rgba(72, 72, 209, 0.10)",
+        PRIMARY_SHADOW = "rgba(72, 72, 209, 0.18)",
+
+        SUCCESS      = "#16A34A",
+        SUCCESS_SOFT = "rgba(22, 163, 74, 0.12)",
+
+        WARNING      = "#CA8A04",
+        WARNING_SOFT = "rgba(202, 138, 4, 0.12)",
+
+        DANGER      = "#DC2626",
+        DANGER_SOFT = "rgba(220, 38, 38, 0.12)",
+
+        BG          = "#E3F2FD",     # background utama, terang
+        SIDEBAR_BG  = "#BBD0E1",
+        CARD_BG     = "#BBD0E1",     # kartu
+        CARD_BG_2   = "#F1F2F9",     # kartu level kedua / hover
+        BORDER      = "#E2E4F0",
+        TEXT        = "#101011",
+        TEXT_MUTED  = "#0E0E0E",
+    ),
+}
+
+# Nilai default (akan ditimpa oleh init_theme() saat aplikasi berjalan)
+PRIMARY        = THEMES["dark"]["PRIMARY"]
+PRIMARY_HOVER  = THEMES["dark"]["PRIMARY_HOVER"]
+PRIMARY_SOFT   = THEMES["dark"]["PRIMARY_SOFT"]
+PRIMARY_SHADOW = THEMES["dark"]["PRIMARY_SHADOW"]
+
+SUCCESS      = THEMES["dark"]["SUCCESS"]
+SUCCESS_SOFT = THEMES["dark"]["SUCCESS_SOFT"]
+
+WARNING      = THEMES["dark"]["WARNING"]
+WARNING_SOFT = THEMES["dark"]["WARNING_SOFT"]
+
+DANGER      = THEMES["dark"]["DANGER"]
+DANGER_SOFT = THEMES["dark"]["DANGER_SOFT"]
+
+BG          = THEMES["dark"]["BG"]
+SIDEBAR_BG  = THEMES["dark"]["SIDEBAR_BG"]
+CARD_BG     = THEMES["dark"]["CARD_BG"]
+CARD_BG_2   = THEMES["dark"]["CARD_BG_2"]
+BORDER      = THEMES["dark"]["BORDER"]
+TEXT        = THEMES["dark"]["TEXT"]
+TEXT_MUTED  = THEMES["dark"]["TEXT_MUTED"]
+
+
+# ==========================================================
+# MANAJEMEN TEMA (LIGHT / DARK)
+# ==========================================================
+
+def _apply_palette(nama_tema):
+    """Menimpa variabel warna modul ini sesuai tema yang dipilih."""
+
+    palette = THEMES.get(nama_tema, THEMES["dark"])
+    globals().update(palette)
+
+
+def init_theme():
+    """Dipanggil sekali di awal render setiap halaman agar warna
+    modul ini sesuai dengan tema yang tersimpan di session_state."""
+
+    if "theme" not in st.session_state:
+        st.session_state["theme"] = "dark"
+
+    _apply_palette(st.session_state["theme"])
+
+
+def toggle_theme():
+    """Membalik tema aktif antara light <-> dark."""
+
+    st.session_state["theme"] = (
+        "light" if st.session_state.get("theme", "dark") == "dark" else "dark"
+    )
+    _apply_palette(st.session_state["theme"])
+
+
+def is_dark():
+    return st.session_state.get("theme", "dark") == "dark"
+
+
+def theme_toggle_button(key="theme_toggle"):
+    """Menampilkan tombol untuk mengubah tema light/dark dan
+    langsung memuat ulang halaman saat ditekan."""
+
+    label = "☀️ Light" if is_dark() else "🌙 Dark"
+
+    if st.button(label, key=key, use_container_width=True, help="Ganti tema tampilan"):
+        toggle_theme()
+        st.rerun()
 
 
 # ==========================================================
@@ -41,6 +137,12 @@ def load_css():
         .stApp {{
             background: {BG};
             color: {TEXT};
+            transition: background 0.2s ease, color 0.2s ease;
+        }}
+
+        /* ---------- Tombol ganti tema (sidebar) ---------- */
+        section[data-testid="stSidebar"] div[data-testid="stButton"] button {{
+            transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
         }}
 
         html, body, [class*="css"] {{
@@ -161,7 +263,7 @@ def load_css():
             border-radius: 10px;
             padding: 0.55rem 1.1rem;
             font-weight: 600;
-            box-shadow: 0 4px 14px rgba(108, 107, 245, 0.28);
+            box-shadow: 0 4px 14px {PRIMARY_SHADOW};
             transition: background 0.15s ease, transform 0.1s ease;
         }}
 

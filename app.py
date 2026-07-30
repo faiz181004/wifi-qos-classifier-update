@@ -42,6 +42,7 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
+style.init_theme()
 style.load_css()
 
 # ==========================
@@ -80,6 +81,10 @@ if not is_login():
 
     with col_tengah:
 
+        top_kiri, top_kanan = st.columns([4, 1])
+
+        with top_kanan:
+            style.theme_toggle_button(key="theme_toggle_login")
 
         st.markdown(
             f"""
@@ -205,14 +210,27 @@ nama_user = st.session_state["nama"] or "Pengguna"
 inisial = nama_user.strip()[0].upper() if nama_user.strip() else "U"
 role_user = st.session_state["role"].upper()
 
-st.sidebar.markdown(
-    f"""
-    <div style="display:flex;align-items:center;gap:10px;padding:0.3rem 0.2rem 1.2rem 0.2rem;">
-        <div style="font-size:1.15rem;font-weight:700;letter-spacing:-0.01em;">WiFi QoS</div>
-    </div>
-    """,
-    unsafe_allow_html=True
-)
+sidebar_logo, sidebar_toggle = st.sidebar.columns([3, 2])
+
+with sidebar_logo:
+
+    st.markdown(
+        f"""
+        <div style="display:flex;align-items:center;gap:10px;padding:0.6rem 0.2rem 1.2rem 0.2rem;">
+            <div style="font-size:1.15rem;font-weight:700;letter-spacing:-0.01em;">WiFi QoS</div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+with sidebar_toggle:
+
+    st.markdown(
+        """<div style="padding-top:0.3rem;"></div>""",
+        unsafe_allow_html=True
+    )
+
+    style.theme_toggle_button(key="theme_toggle_sidebar")
 
 st.sidebar.markdown(
     f"""
